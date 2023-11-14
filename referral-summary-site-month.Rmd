@@ -320,6 +320,12 @@ not_all_na <- function(x) all(!is.na(x)) # Exclude columns with All NAs
 ```
 
 
+```{r Global Variables, echo = FALSE, warning = FALSE, message = FALSE}
+
+report_run_date <- Sys.Date()
+```
+
+
 ```{r Import Processed Referrals Volume Data, echo = FALSE, warning = FALSE, message = FALSE}
 
 path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
