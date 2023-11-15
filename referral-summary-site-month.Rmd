@@ -1125,41 +1125,46 @@ reactable(
     SITE = colDef(
       # footer = "Total",
       name = "Site",
-      minWidth = 120),
+      minWidth = 180),
     
     DEPT_SPECIALTY_NAME = colDef(
       # footer = "Total",
       name = "Specialty",
-      minWidth = 120),
+      minWidth = 180),
     
     DEPARTMENT_NAME = colDef(
       # footer = "Total",
       name = "Department",
-      minWidth = 180),
+      minWidth = 200),
 
     WORKQUEUE_NAME = colDef(
       name = "WQ Name",
-      minWidth = 220),
+      minWidth = 240),
     
     WORKQUEUE_ID = colDef(
       name = "WQ ID",
-      minWidth = 120),
+      minWidth = 80),
     
     Y = colDef(
       name = "Active WQs",
-      minWidth = 120,
-      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px")),
+      minWidth = 80,
+      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px"),
+      aggregate = "sum",
+      format = colFormat(separators = TRUE)),
     
     N = colDef(
       name = "Deactivated WQs",
-      minWidth = 120,
-      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px")),
+      minWidth = 80,
+      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px"),
+      aggregate = "sum",
+      format = colFormat(separators = TRUE)),
     
     total = colDef(
       name = "Total",
-      minWidth = 120,
+      minWidth = 80,
       headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px"),
-      aggregate = "sum"),
+      aggregate = "sum",
+      format = colFormat(separators = TRUE)),
     
     deactivated_perc = colDef(
       name = "% Deactivated",
