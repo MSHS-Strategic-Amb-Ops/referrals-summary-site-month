@@ -332,6 +332,68 @@ referral_vol <- readRDS(paste0(path,"referral_vol.rds"))
 ```
 
 
+```{r Referral WQ Data Import, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Connect to Coboodle ----------------------------------------------------------
+conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
+
+# Connection to Clarity ------------------------------------------------------
+# conn1 <- dbPool(drv = odbc(), dsn = "OAO Cloud DB SoYoun", timeout = 30)
+conn2 <- dbConnect(odbc(), 
+                  "Clarity_prod", 
+                  uid = "kweons01" , 
+                  pwd = "kweons01123$")
+
+# Import Slot Availability Data ------------------------------------------------
+slot_raw_tbl <- tbl(conn2, "Y_DM_BOOKED_FILLED_RATE")
+access_raw_tbl <- tbl(conn2, "MV_DM_PATIENT_ACCESS")
+availability_raw_tbl <- tbl(conn2, "V_AVAILABILITY")
+block_raw_tbl <- tbl(conn2, "AVAIL_BLOCK")
+block_name_tbl <- tbl(conn2, "ZC_APPT_BLOCK")
+orders_raw_tbl <- tbl(conn2, "ORDER_PROC")
+coverage_tbl <- tbl(conn2, "V_PAT_ENC_COVERAGE")
+template_tbl <- tbl(conn2, "TEMPLATE")
+
+
+# Import WQ Data ---------------------------------------------------------------
+wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
+wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
+wq_all_conn <- tbl(conn2, "WORKQUEUE_INFO")
+
+
+# Unique P-P Referrals 
+wq_all_data <- wq_all_conn %>%
+  filter(WORKQUEUE_TYPE_C == 51) %>%
+  filter(PB_OWNING_AREA_C == 78) %>%
+  collect() 
+
+wq_all_processed <- wq_all_data %>%
+  mutate(referral_type = case_when(str_detect(WORKQUEUE_NAME, "REFERRAL TO") ~ "TO WQ",
+                                   str_detect(WORKQUEUE_NAME, "REFERRAL FROM") ~ "FROM WQ", 
+                                   TRUE ~ "")) %>%
+  mutate(DEPARTMENT_NAME = trim(str_remove_all(trim(WORKQUEUE_NAME), "REFERRAL TO | REFERRAL TO | REFERRAL TO|REFERRAL FROM | REFERRAL FROM| REFERRAL FROM ")))
+
+
+dept_mapping <- access_raw_tbl %>%
+  group_by(DEPARTMENT_NAME, SITE, DEPT_SPECIALTY_NAME) %>%
+  summarise(total = n()) %>%
+  collect()
+
+wq_all_processed <- left_join(wq_all_processed, dept_mapping %>% dplyr::select(-total))
+
+wq_all_processed <- wq_all_processed %>%
+  group_by(SITE, ACTIVE_YN, DEPT_SPECIALTY_NAME, DEPARTMENT_NAME, WORKQUEUE_NAME, WORKQUEUE_ID) %>%
+  summarise(total = n()) %>%
+  mutate(MSHS = "MSHS") %>%
+    pivot_wider(names_from = ACTIVE_YN,
+                values_from = total,
+                values_fill = 0) %>%
+  mutate(total = Y + N) %>%
+    mutate(deactivated_perc = N/total)
+
+```
+
+
 ```{r Graph and Table Functions, echo = FALSE, warning = FALSE, message = FALSE, results='hide'}
 
 # Creating Data Bars for Reactable ---------------------------------------------
@@ -1004,3 +1066,128 @@ reactable(
 ```
 <br/>
 <br/>
+
+
+### Active WQs
+```{r MSHS WQs Output, echo = FALSE, warning = FALSE, message = FALSE, fig.width=12}
+# htmltools::browsable(
+#   tagList(
+#     tags$button(
+#       "Expand/collapse all",
+#       onclick = "Reactable.toggleAllRowsExpanded('referrals-expansion-table-mshs-sent')"
+#     ),
+    # tags$button(
+    #   tagList(fontawesome::fa("download"), "Download Monthly Volume by Site"),
+    #   onclick = "Reactable.downloadDataCSV('referral-vol-download-table', 'Monthly Volume Data')"
+    # ),
+
+reactable(
+  wq_all_processed,
+  # elementId = "referrals-expansion-table-mshs-sent",
+  # elementId = "referral-vol-download-table",
+  style = list(fontFamily = 'Calibri',
+                 fontSize = '14px'),
+    defaultColDef = colDef(align = "left",
+                           headerStyle = list(fontWeight = "Bold", fontSize = "14px"),
+                           headerClass = "bar-sort-header"),
+  # RowStyle = function(index) {
+  #           if (index %in% c(nrow(referral_vol_site_data_mshs))) {
+  #             list(`border-top` = "2px solid rgb(184,184,184)",
+  #                  fontWeight = "Bold")
+  #           }
+  #         },
+    highlight = TRUE,
+    # filterable = TRUE,
+    pagination = FALSE,
+    # height = 800,
+    wrap = TRUE,
+  searchable = TRUE,
+
+  groupBy = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME", "WORKQUEUE_NAME"),
+
+  columnGroups = list(
+    colGroup(name = "", columns = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME", "WORKQUEUE_NAME", "WORKQUEUE_ID"),
+             headerStyle = list(color = "black", fontSize = "15px"),
+             sticky = "left"),
+    colGroup(name = "# of WQs", columns = c("Y", "N", "total", "deactivated_perc"),
+             headerStyle = list(color = "#d80b8c", fontSize = "15px"))
+    # colGroup(name = "Visits Arrived/Scheduled in the Last 3 Months", columns = c("total_vol", "new_pts", "new_access", "new_14access_perc"),
+    #           headerStyle = list(color = "#00aeef", fontSize = "15px"))
+    ),
+
+  columns = list(
+    
+    MSHS = colDef(
+      # footer = "Total",
+      name = "MSHS",
+      minWidth = 120),
+    
+    SITE = colDef(
+      # footer = "Total",
+      name = "Site",
+      minWidth = 120),
+    
+    DEPT_SPECIALTY_NAME = colDef(
+      # footer = "Total",
+      name = "Specialty",
+      minWidth = 120),
+    
+    DEPARTMENT_NAME = colDef(
+      # footer = "Total",
+      name = "Department",
+      minWidth = 180),
+
+    WORKQUEUE_NAME = colDef(
+      name = "WQ Name",
+      minWidth = 220),
+    
+    WORKQUEUE_ID = colDef(
+      name = "WQ ID",
+      minWidth = 120),
+    
+    Y = colDef(
+      name = "Active WQs",
+      minWidth = 120,
+      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px")),
+    
+    N = colDef(
+      name = "Deactivated WQs",
+      minWidth = 120,
+      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px")),
+    
+    total = colDef(
+      name = "Total",
+      minWidth = 120,
+      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px"),
+      aggregate = "sum"),
+    
+    deactivated_perc = colDef(
+      name = "% Deactivated",
+      maxWidth = 100,
+      headerStyle = list(background = "#d80b8c", color = "white", fontWeight = "Bold", fontSize = "14px"),
+      # Calculate the aggregate conversion rate as `(total-pending) / total`
+      aggregate = JS("function(values, rows) {
+        let totalN = 0
+        let totaltotal = 0
+        rows.forEach(function(row) {
+          totaltotal += row['total']
+          totalN += row['N']
+        })
+        return totalN / totaltotal
+      }"),
+      format = colFormat(percent = TRUE, digits = 1)
+    )
+    
+
+  ) # Close Columns
+
+  ) # Close Reactable
+
+ # )
+# )
+
+```
+<br/>
+<br/>
+
+
