@@ -1086,7 +1086,9 @@ reactable(
     # ),
 
 reactable(
-  wq_all_processed,
+  wq_all_processed %>% 
+    ungroup() %>%
+    dplyr::select(-DEPT_SPECIALTY_NAME),
   # elementId = "referrals-expansion-table-mshs-sent",
   # elementId = "referral-vol-download-table",
   style = list(fontFamily = 'Calibri',
@@ -1107,10 +1109,10 @@ reactable(
     wrap = TRUE,
   searchable = TRUE,
 
-  groupBy = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME"),
+  groupBy = c("MSHS", "SITE", "DEPARTMENT_NAME"),
 
   columnGroups = list(
-    colGroup(name = "", columns = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME", "WORKQUEUE_NAME", "WORKQUEUE_ID", "wq_type"),
+    colGroup(name = "", columns = c("MSHS", "SITE", "DEPARTMENT_NAME", "WORKQUEUE_NAME", "WORKQUEUE_ID", "wq_type"),
              headerStyle = list(color = "black", fontSize = "15px"),
              sticky = "left"),
     colGroup(name = "# of WQs", columns = c("Y", "N", "total", "deactivated_perc"),
@@ -1131,10 +1133,10 @@ reactable(
       name = "Site",
       minWidth = 180),
     
-    DEPT_SPECIALTY_NAME = colDef(
-      # footer = "Total",
-      name = "Specialty",
-      minWidth = 180),
+    # DEPT_SPECIALTY_NAME = colDef(
+    #   # footer = "Total",
+    #   name = "Specialty",
+    #   minWidth = 180),
     
     DEPARTMENT_NAME = colDef(
       # footer = "Total",
