@@ -1110,7 +1110,7 @@ reactable(
              headerStyle = list(color = "black", fontSize = "15px"),
              sticky = "left"),
     colGroup(name = "# of WQs", columns = c("Y", "N", "total", "deactivated_perc"),
-             headerStyle = list(color = "#d80b8c", fontSize = "15px"))
+             headerStyle = list(color = "#d80b8c", fontSize = "18px"))
     # colGroup(name = "Visits Arrived/Scheduled in the Last 3 Months", columns = c("total_vol", "new_pts", "new_access", "new_14access_perc"),
     #           headerStyle = list(color = "#00aeef", fontSize = "15px"))
     ),
