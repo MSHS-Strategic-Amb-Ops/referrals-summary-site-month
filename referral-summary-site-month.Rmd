@@ -361,6 +361,10 @@ wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
 wq_all_conn <- tbl(conn2, "WORKQUEUE_INFO")
 
 
+# wq_history_data <- wq_history_conn %>%
+#   head(10) %>%
+#   collect()
+
 # Unique P-P Referrals 
 wq_all_data <- wq_all_conn %>%
   filter(WORKQUEUE_TYPE_C == 51) %>%
@@ -368,7 +372,7 @@ wq_all_data <- wq_all_conn %>%
   collect() 
 
 wq_all_processed <- wq_all_data %>%
-  mutate(referral_type = case_when(str_detect(WORKQUEUE_NAME, "REFERRAL TO") ~ "TO WQ",
+  mutate(wq_type = case_when(str_detect(WORKQUEUE_NAME, "REFERRAL TO") ~ "TO WQ",
                                    str_detect(WORKQUEUE_NAME, "REFERRAL FROM") ~ "FROM WQ", 
                                    TRUE ~ "")) %>%
   mutate(DEPARTMENT_NAME = trim(str_remove_all(trim(WORKQUEUE_NAME), "REFERRAL TO | REFERRAL TO | REFERRAL TO|REFERRAL FROM | REFERRAL FROM| REFERRAL FROM ")))
@@ -382,7 +386,7 @@ dept_mapping <- access_raw_tbl %>%
 wq_all_processed <- left_join(wq_all_processed, dept_mapping %>% dplyr::select(-total))
 
 wq_all_processed <- wq_all_processed %>%
-  group_by(SITE, ACTIVE_YN, DEPT_SPECIALTY_NAME, DEPARTMENT_NAME, WORKQUEUE_NAME, WORKQUEUE_ID) %>%
+  group_by(SITE, ACTIVE_YN, DEPT_SPECIALTY_NAME, DEPARTMENT_NAME, WORKQUEUE_NAME, WORKQUEUE_ID, wq_type) %>%
   summarise(total = n()) %>%
   mutate(MSHS = "MSHS") %>%
     pivot_wider(names_from = ACTIVE_YN,
@@ -1103,10 +1107,10 @@ reactable(
     wrap = TRUE,
   searchable = TRUE,
 
-  groupBy = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME", "WORKQUEUE_NAME"),
+  groupBy = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME"),
 
   columnGroups = list(
-    colGroup(name = "", columns = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME", "WORKQUEUE_NAME", "WORKQUEUE_ID"),
+    colGroup(name = "", columns = c("MSHS", "SITE", "DEPT_SPECIALTY_NAME", "DEPARTMENT_NAME", "WORKQUEUE_NAME", "WORKQUEUE_ID", "wq_type"),
              headerStyle = list(color = "black", fontSize = "15px"),
              sticky = "left"),
     colGroup(name = "# of WQs", columns = c("Y", "N", "total", "deactivated_perc"),
@@ -1143,6 +1147,10 @@ reactable(
     
     WORKQUEUE_ID = colDef(
       name = "WQ ID",
+      minWidth = 80),
+    
+    wq_type = colDef(
+      name = "WQ Type",
       minWidth = 80),
     
     Y = colDef(
