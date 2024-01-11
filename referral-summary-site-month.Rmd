@@ -688,21 +688,21 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
 ## MSHS* {.tabset .tabset-fade .tabset-pills}
 ### Referrals Received
 ```{r MSHS Total Referrals Received Output, echo = FALSE, warning = FALSE, message = FALSE, fig.width=12}
-# htmltools::browsable(
-#   tagList(
-#     tags$button(
-#       "Expand/collapse all",
-#       onclick = "Reactable.toggleAllRowsExpanded('referrals-expansion-table-mshs')"
-#     ),
+htmltools::browsable(
+  tagList(
     # tags$button(
-    #   tagList(fontawesome::fa("download"), "Download Monthly Volume by Site"),
-    #   onclick = "Reactable.downloadDataCSV('referral-vol-download-table', 'Monthly Volume Data')"
+    #   "Expand/collapse all",
+    #   onclick = "Reactable.toggleAllRowsExpanded('referrals-expansion-table-mshs')"
     # ),
+tags$button(
+  tagList(fontawesome::fa("download"), "Download Referrals Received by Site"),
+  onclick = "Reactable.downloadDataCSV('referral-vol-download-table', 'Referrals Received by Sit')"
+),
 
 reactable(
   referral_vol_site_data_mshs,
-  elementId = "referrals-expansion-table-mshs-1",
-  # elementId = "referral-vol-download-table",
+  # elementId = "referrals-expansion-table-mshs-1",
+  elementId = "referral-vol-download-table",
   style = list(fontFamily = 'Calibri',
                  fontSize = '14px'),
     defaultColDef = colDef(align = "left",
@@ -871,8 +871,8 @@ reactable(
 
   ) # Close Reactable
 
- # )
-# )
+ )
+)
 
 ```
 <br/>
