@@ -732,6 +732,8 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
   
   referral_vol_site_data_mshs$ReceivedByDepID <- NULL
 
+  
+  invisible(gc())
 ```
 
 
@@ -769,6 +771,8 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
 
   
   referral_vol_site_data_mshs_sent$SentByDepID <- NULL
+  
+  invisible(gc())
 
 ```
 
@@ -832,6 +836,8 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
 # 
 #  )
 # )
+
+
 
 ```
 
@@ -1025,6 +1031,8 @@ reactable(
  )
 )
 
+invisible(gc())
+
 ```
 <br/>
 <br/>
@@ -1217,6 +1225,8 @@ reactable(
 
  # )
 # )
+
+invisible(gc())
 
 ```
 <br/>
