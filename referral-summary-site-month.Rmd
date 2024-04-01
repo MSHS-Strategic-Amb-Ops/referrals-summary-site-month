@@ -706,8 +706,8 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
   # Referrals Received Data 
   referral_vol_site_data_mshs <- referral_vol %>%
     filter(ReceivedByDept != "*Unspecified") %>%
-    # filter(ReceivedBySite %in% mshs_sites) %>%
-    # filter(createdYear == current_year) %>%
+  filter(Class != "Outgoing") %>%
+  filter(Status != "Denied") %>%
     # filter(StartInstant < report_run_date & StartInstant >= as.Date("2022-09-01", "%Y-%m-%d")) %>%
     group_by(createdYear, createdMonthYear, ReceivedBySite, ReferredToDepartmentSpecialty, ReceivedByDept, ReceivedByDepID, ApptStatusFinal) %>%
     summarise(total_vol = n()) %>%
@@ -744,8 +744,8 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
   # Referrals Received Data 
   referral_vol_site_data_mshs_sent <- referral_vol %>%
     filter(ReceivedByDept != "*Unspecified") %>%
-    # filter(ReceivedBySite %in% mshs_sites) %>%
-    # filter(createdYear == current_year) %>%
+  filter(Class != "Outgoing") %>%
+  filter(Status != "Denied") %>%
     # filter(StartInstant < report_run_date & StartInstant >= as.Date("2022-09-01", "%Y-%m-%d")) %>%
     group_by(createdYear, createdMonthYear, SentBySite, SentBySpecialty, SentByDept, SentByDepID, ApptStatusFinal) %>%
     summarise(total_vol = n()) %>%
@@ -778,6 +778,7 @@ mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP",
 *Data Date Range: From 2023-01-01 to `r report_run_date - 1`*<br/>
 *Data Source: EPIC Caboodle Referrals Data and Clarity Scheduling Data*<br/>
 *MSHS does not include MSHP as a receiving site*<br/>
+*Excludes "Outgoing" and "Denied" referrals*<br/>
 
 :::: {.blackbox data-latex=""}
 ::: {.center data-latex=""}
