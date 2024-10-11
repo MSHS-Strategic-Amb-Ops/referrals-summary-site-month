@@ -342,7 +342,7 @@ report_run_date <- Sys.Date()
 conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
 
 # Import Referrals+Visit Data --------------------------------------------------
-referrals_conn <- tbl(conn1, "Referrals")
+referrals_conn <- tbl(conn1, "ReferralsDataView")
 referrals_raw <- referrals_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
   filter(StartInstant >= as.Date("2022-04-01") & StartInstant < report_run_date) %>%
