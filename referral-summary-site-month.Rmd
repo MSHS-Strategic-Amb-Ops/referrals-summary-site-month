@@ -322,7 +322,7 @@ report_run_date <- Sys.Date()
 
 ```{r Import Processed Referrals Volume Data, echo = FALSE, warning = FALSE, message = FALSE}
 
-path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
+# path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 # saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
 
 # referral_vol <- readRDS(paste0(path,"referral_vol.rds"))
@@ -332,22 +332,58 @@ path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 ```
 
 
-```{r Referrals Data Importing, echo = FALSE, warning = FALSE, message = FALSE}
+```{r Establish Oracle Connection, echo = FALSE, warning = FALSE, message = FALSE}
 
 report_run_date <- Sys.Date()
 
 # Connect to Database ----------------------------------------------------------
-# conn1 <- odbcConnect("Caboodle") # Connect to Server
+# conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
+conn1 <- dbConnect(odbc(),
+                    Driver = "SQLServer",
+                    # Server = "10.2.42.69", # old server
+                    Server = "datahub-synapse.sql.azuresynapse.net",
+                    database = "datahub_epic_dw",
+                    UID = "MSS_USER",
+                    PWD = "Apple_Bees456$",
+                    Port = 1433)
 
-conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
+
+conn2 <- dbPool(drv = odbc(), dsn = "OAO Cloud DB SoYoun", timeout = 30)
+conn3 <- dbConnect(odbc(), 
+                  "Clarity_prod", 
+                  uid = "kweons01" , 
+                  pwd = "kweons01123$")
+
+
+# Caboodle
+# referrals_conn <- tbl(conn1, "ReferralsDataView")
+referrals_conn <- tbl(conn1, dbplyr::ident_q('"Caboodle"."ReferralsDataView"'))
+
+# referralFact_conn <- tbl(conn1, "ReferralFact")
+referralFact_conn <- tbl(conn1, dbplyr::ident_q('"Caboodle"."ReferralFact"'))
+
+# visitFact_conn <- tbl(conn1, "VisitFact")
+visitFact_conn <- tbl(conn1, dbplyr::ident_q('"Caboodle"."VisitFact"'))
+
+
+# Clarity
+referrals_tbl <- tbl(conn3, "REFERRAL")
+referrals_wq_item_tbl <- tbl(conn3, "REFERRAL_WQ_ITEMS")
+referrals_wq_tbl <- tbl(conn3, "REFERRAL_WQ")
+
+```
+
+
+```{r Referrals Data Importing, echo = FALSE, warning = FALSE, message = FALSE}
 
 # Import Referrals+Visit Data --------------------------------------------------
-referrals_conn <- tbl(conn1, "ReferralsDataView")
+# referrals_conn <- tbl(conn1, "ReferralsDataView")
 referrals_raw <- referrals_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
-  filter(StartInstant >= as.Date("2022-04-01") & StartInstant < report_run_date) %>%
+  filter(StartInstant >= as.Date("2024-01-01") & StartInstant < report_run_date) %>%
   filter(Status != "Canceled") %>%
   collect()
+
 
 # dep <- referrals_conn %>%
 #   group_by(ReceivedBySite, ReceivedByDept) %>%
@@ -356,20 +392,18 @@ referrals_raw <- referrals_conn %>%
 
 # Import Referrals Data for Addtional Referral Details -------------------------
 # referralFactAll <- sqlQuery(conn1, "SELECT TOP 10* FROM PRDREPORT.FullAccess.ReferralFact")
-referralFact_conn <- tbl(conn1, "ReferralFact")
+# referralFact_conn <- tbl(conn1, "ReferralFact")
 
 referralFact_raw <- referralFact_conn %>%
-  # head(1000) %>%
-  # collect()
   mutate(StartInstant = as.Date(StartInstant)) %>%
-  filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
+  filter(StartInstant >= as.Date("2024-01-01") & StartInstant <= report_run_date) %>%
   group_by(ReferralKey, ReferredToDepartmentSpecialty, StartInstant, `_CreationInstant`, `_LastUpdatedInstant`, LastEnteredWorkqueueDateKey_X,
            LastEnteredWorkqueueTimeKey_X, LastEnteredWorkqueueName_X,
            Class, Priority, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue, StatusReason, SchedulingStatus,
            FirstCallMadeInstant, FirstEncounterCreatedInstant, FirstEncounterInstant, ExpirationInstant,
            WasPatientContactedWithin12Hours_X,
            ProfessionalChargeAmount, ProfessionalChargeEstimate, HospitalChargeEstimate,
-           PrimaryCoverageKey) %>%
+           PrimaryCoverageKey, PendingReason) %>%
   summarise(total = n()) %>%
   # left_join(coverage_payor_plan_tbl, 
   #           by = "COVERAGE_ID",
@@ -383,7 +417,7 @@ referralFact_raw$total <- NULL
 #   filter(StartInstant == as.Date("2022-11-03")) %>%
 #   collect()
 
-visitFact_conn <- tbl(conn1, "VisitFact")
+# visitFact_conn <- tbl(conn1, "VisitFact")
 visitFact_raw <- visitFact_conn %>%
   filter(ReferralKey >0) %>%
   group_by(ReferralKey, AppointmentStatus, AppointmentCreationDateKey, AppointmentCancellationDateKey) %>%
@@ -398,8 +432,6 @@ referrals_merged <- left_join(referrals_raw, subset(referralFact_raw, select = -
 referrals_merged <- referrals_merged %>%
   mutate(SentByDepID = as.character(SentByDepID),
          ReceivedByDepID = as.character(ReceivedByDepID))
-
-
 ```
 
 ```{r Referrals Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
@@ -485,7 +517,16 @@ referral_vol <- referral_vol %>%
 ```{r Referral WQ Data Import, echo = FALSE, warning = FALSE, message = FALSE}
 
 # Connect to Coboodle ----------------------------------------------------------
-conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
+# conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
+conn1 <- dbConnect(odbc(),
+                    Driver = "SQLServer",
+                    # Server = "10.2.42.69", # old server
+                    Server = "datahub-synapse.sql.azuresynapse.net",
+                    database = "datahub_epic_dw",
+                    UID = "MSS_USER",
+                    PWD = "Apple_Bees456$",
+                    Port = 1433)
+
 
 # Connection to Clarity ------------------------------------------------------
 # conn1 <- dbPool(drv = odbc(), dsn = "OAO Cloud DB SoYoun", timeout = 30)
@@ -506,8 +547,12 @@ template_tbl <- tbl(conn2, "TEMPLATE")
 
 
 # Import WQ Data ---------------------------------------------------------------
-wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
-wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
+# wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
+wq_history_conn  <- tbl(conn1, dbplyr::ident_q('"Caboodle"."ReferralWorkqueueEventFactX"'))
+
+# wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
+wq_reasons_conn  <- tbl(conn1, dbplyr::ident_q('"Caboodle"."ReferralWQReasons"'))
+
 wq_all_conn <- tbl(conn2, "WORKQUEUE_INFO")
 
 
